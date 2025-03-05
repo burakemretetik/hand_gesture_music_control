@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJ Hands - Hand Gesture Music Control</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>DJ Hands</h1>
+        <p>Control music with your hand gestures</p>
+    </header>
+
+    <main>
+        <!-- Upload Section -->
+        <section id="upload-section">
+            <h2>Upload Your Music</h2>
+            <div id="drop-zone" class="drop-zone">
+                <div class="drop-zone-prompt">
+                    <div class="icon">🎵</div>
+                    <p>Drag & drop audio files here</p>
+                    <p class="or">- or -</p>
+                    <label class="file-upload-btn">
+                        <input type="file" id="music-upload" accept="audio/*" multiple>
+                        <span>Browse Files</span>
+                    </label>
+                </div>
+                <div class="drop-zone-info">
+                    <p>Supported formats: MP3, WAV, OGG, M4A</p>
+                </div>
+            </div>
+            <div id="playlist">
+                <h3>Your Playlist</h3>
+                <ul id="track-list"></ul>
+            </div>
+        </section>
+
+        <!-- DJ Console Section -->
+        <section id="dj-section">
+            <h2>DJ Console</h2>
+            <div class="dj-console">
+                <div id="visualizer" class="visualizer">
+                    <!-- Waveform visualization will go here -->
+                </div>
+                
+                <div class="decks-container">
+                    <!-- Left Deck -->
+                    <div class="deck left-deck">
+                        <div class="deck-header">
+                            <div class="deck-title">Deck 1</div>
+                        </div>
+                        
+                        <div id="left-now-playing" class="now-playing">
+                            No track loaded
+                        </div>
+                        
+                        <div class="controls">
+                            <div class="transport-controls">
+                                <button id="left-cue" class="transport-btn cue" title="Set Cue Point">
+                                    ⏺️
+                                </button>
+                                <button id="left-play" class="transport-btn play-pause" title="Play/Pause">
+                                    ▶️
+                                </button>
+                                <button id="left-stop" class="transport-btn stop" title="Stop">
+                                    ⏹️
+                                </button>
+                            </div>
+                            
+                            <div class="slider-container">
+                                <label for="left-volume">Volume</label>
+                                <input type="range" id="left-volume" class="slider" min="0" max="100" value="80">
+                            </div>
+                            
+                            <div class="slider-container">
+                                <label for="left-speed">Speed</label>
+                                <input type="range" id="left-speed" class="slider" min="50" max="150" value="100">
+                            </div>
+
+                            <!-- Hidden audio element for the left deck -->
+                            <audio id="left-player"></audio>
+                        </div>
+                    </div>
+                    
+                    <!-- Mixer Section -->
+                    <div class="mixer-section">
+                        <h3 class="mixer-title">Mixer</h3>
+                        
+                        <div class="crossfader-container">
+                            <div class="crossfader-info">
+                                <span class="crossfader-label">Deck 1</span>
+                                <span class="crossfader-value">50%</span>
+                                <span class="crossfader-label">Deck 2</span>
+                            </div>
+                            <input type="range" id="crossfader" class="crossfader" min="0" max="100" value="50">
+                        </div>
+                        
+                        <!-- Custom EQ Controls -->
+                        <div class="eq-section">
+                            <div class="eq-control">
+                                <span class="eq-label">LOW</span>
+                                <div class="eq-slider-container" id="low-slider-container">
+                                    <div class="eq-slider-track">
+                                        <div class="eq-slider-fill" id="low-slider-fill"></div>
+                                        <div class="eq-slider-handle" id="low-slider-handle" data-band="low"></div>
+                                    </div>
+                                </div>
+                                <span id="eq-low-value" class="eq-value">0 dB</span>
+                            </div>
+                            
+                            <div class="eq-control">
+                                <span class="eq-label">MID</span>
+                                <div class="eq-slider-container" id="mid-slider-container">
+                                    <div class="eq-slider-track">
+                                        <div class="eq-slider-fill" id="mid-slider-fill"></div>
+                                        <div class="eq-slider-handle" id="mid-slider-handle" data-band="mid"></div>
+                                    </div>
+                                </div>
+                                <span id="eq-mid-value" class="eq-value">0 dB</span>
+                            </div>
+                            
+                            <div class="eq-control">
+                                <span class="eq-label">HIGH</span>
+                                <div class="eq-slider-container" id="high-slider-container">
+                                    <div class="eq-slider-track">
+                                        <div class="eq-slider-fill" id="high-slider-fill"></div>
+                                        <div class="eq-slider-handle" id="high-slider-handle" data-band="high"></div>
+                                    </div>
+                                </div>
+                                <span id="eq-high-value" class="eq-value">0 dB</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Deck -->
+                    <div class="deck right-deck">
+                        <div class="deck-header">
+                            <div class="deck-title">Deck 2</div>
+                        </div>
+                        
+                        <div id="right-now-playing" class="now-playing">
+                            No track loaded
+                        </div>
+                        
+                        <div class="controls">
+                            <div class="transport-controls">
+                                <button id="right-cue" class="transport-btn cue" title="Set Cue Point">
+                                    ⏺️
+                                </button>
+                                <button id="right-play" class="transport-btn play-pause" title="Play/Pause">
+                                    ▶️
+                                </button>
+                                <button id="right-stop" class="transport-btn stop" title="Stop">
+                                    ⏹️
+                                </button>
+                            </div>
+                            
+                            <div class="slider-container">
+                                <label for="right-volume">Volume</label>
+                                <input type="range" id="right-volume" class="slider" min="0" max="100" value="80">
+                            </div>
+                            
+                            <div class="slider-container">
+                                <label for="right-speed">Speed</label>
+                                <input type="range" id="right-speed" class="slider" min="50" max="150" value="100">
+                            </div>
+
+                            <!-- Hidden audio element for the right deck -->
+                            <audio id="right-player"></audio>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Burak Tetik - MIT License</p>
+    </footer>
+
+    <div id="notifications"></div>
+
+    <!-- JavaScript -->
+    <script src="js/app.js"></script>
+</body>
+</html>
