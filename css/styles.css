@@ -338,6 +338,114 @@ button:hover {
     background: var(--secondary-color);
 }
 
+/* BPM Controls */
+.bpm-container {
+    margin-top: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.bpm-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+}
+
+.bpm-display label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+}
+
+.bpm-display #left-bpm-value,
+.bpm-display #right-bpm-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: monospace;
+    min-width: 4rem;
+    text-align: right;
+}
+
+.left-deck .bpm-display #left-bpm-value {
+    color: var(--primary-color);
+}
+
+.right-deck .bpm-display #right-bpm-value {
+    color: var(--secondary-color);
+}
+
+.bpm-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.bpm-btn {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 4px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    min-width: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.bpm-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.left-deck .bpm-btn {
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.right-deck .bpm-btn {
+    border-bottom: 2px solid var(--secondary-color);
+}
+
+.bpm-btn.sync-btn {
+    background-color: rgba(0, 0, 0, 0.3);
+    font-weight: 600;
+}
+
+.left-deck .sync-btn {
+    border: 1px solid var(--primary-color);
+}
+
+.right-deck .sync-btn {
+    border: 1px solid var(--secondary-color);
+}
+
+.bpm-btn.active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+#left-bpm-input,
+#right-bpm-input {
+    width: 70px;
+    padding: 0.4rem;
+    border: none;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-family: monospace;
+    text-align: center;
+}
+
+#left-bpm-input:focus,
+#right-bpm-input:focus {
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
 /* Mixer Section */
 .mixer-section {
     flex: 1;
