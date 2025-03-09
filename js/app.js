@@ -26,6 +26,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const leftPlayer = document.getElementById('left-player');
     const rightPlayer = document.getElementById('right-player');
     
+    // BPM controls
+    const leftBpmValue = document.getElementById('left-bpm-value');
+    const leftBpmInput = document.getElementById('left-bpm-input');
+    const leftBpmDetect = document.getElementById('left-bpm-detect');
+    const leftBpmSet = document.getElementById('left-bpm-set');
+    const leftBpmSync = document.getElementById('left-bpm-sync');
+    
+    const rightBpmValue = document.getElementById('right-bpm-value');
+    const rightBpmInput = document.getElementById('right-bpm-input');
+    const rightBpmDetect = document.getElementById('right-bpm-detect');
+    const rightBpmSet = document.getElementById('right-bpm-set');
+    const rightBpmSync = document.getElementById('right-bpm-sync');
+    
     // Transport controls
     const leftPlay = document.getElementById('left-play');
     const leftCue = document.getElementById('left-cue');
@@ -60,7 +73,10 @@ document.addEventListener('DOMContentLoaded', function() {
             isPlaying: false,
             volume: 0.8,
             speed: 1.0,
-            cuePoint: 0
+            cuePoint: 0,
+            bpm: 120.0,
+            originalBpm: 0,
+            bpmDetecting: false
         },
         right: {
             player: rightPlayer,
@@ -68,7 +84,10 @@ document.addEventListener('DOMContentLoaded', function() {
             isPlaying: false,
             volume: 0.8,
             speed: 1.0,
-            cuePoint: 0
+            cuePoint: 0,
+            bpm: 120.0,
+            originalBpm: 0,
+            bpmDetecting: false
         }
     };
     
@@ -78,6 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let rightAnalyser;
     let visualizerContext;
     let animationFrame;
+    let bpmDetector;
     
     // Initialize audio context once the user interacts with the page
     document.addEventListener('click', initAudioContext, { once: true });
@@ -129,6 +149,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Crossfader
     crossfader.addEventListener('input', (e) => applyCrossfade(e.target.value));
     
+    // BPM controls - Left deck
+    leftBpmDetect.addEventListener('click', () => detectBPM('left'));
+    leftBpmSet.addEventListener('click', () => setBPM('left'));
+    leftBpmSync.addEventListener('click', () => syncBPM('left', 'right'));
+    leftBpmInput.addEventListener('change', () => validateBpmInput(leftBpmInput));
+    
+    // BPM controls - Right deck
+    rightBpmDetect.addEventListener('click', () => detectBPM('right'));
+    rightBpmSet.addEventListener('click', () => setBPM('right'));
+    rightBpmSync.addEventListener('click', () => syncBPM('right', 'left'));
+    rightBpmInput.addEventListener('change', () => validateBpmInput(rightBpmInput));
+    
     // Initialize custom EQ sliders
     setupCustomEQSliders();
     
@@ -146,6 +178,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             rightAnalyser = audioContext.createAnalyser();
             rightAnalyser.fftSize = 256;
+            
+            // Initialize BPM detector
+            bpmDetector = new BPMDetector(audioContext);
             
             // Setup visualization
             setupVisualization();
@@ -448,6 +483,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update deck state
         currentDeck.currentTrack = track;
         currentDeck.cuePoint = 0;
+        currentDeck.bpm = 120.0; // Default BPM
+        currentDeck.originalBpm = 0; // Reset original BPM (will be set by detection)
         
         // Update player
         currentDeck.player.src = track.url;
@@ -467,10 +504,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (deckName === 'left') {
             leftNowPlaying.textContent = track.displayName;
             leftPlay.innerHTML = '▶️';
+            leftBpmValue.textContent = '120.0';
+            leftBpmInput.value = '120.0';
             applyVolume('left', leftVolume.value);
         } else {
             rightNowPlaying.textContent = track.displayName;
             rightPlay.innerHTML = '▶️';
+            rightBpmValue.textContent = '120.0';
+            rightBpmInput.value = '120.0';
             applyVolume('right', rightVolume.value);
         }
         
@@ -575,16 +616,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
-     * Apply playback speed to a deck
+     * Apply playback speed to a deck and update BPM accordingly
      * @param {string} deckName - 'left' or 'right'
      * @param {number} value - Speed value (50-150)
      */
     function applySpeed(deckName, value) {
         const speedValue = value / 100;
         const currentDeck = deck[deckName];
+        const bpmValue = deckName === 'left' ? leftBpmValue : rightBpmValue;
+        const bpmInput = deckName === 'left' ? leftBpmInput : rightBpmInput;
         
+        // Update speed
         currentDeck.speed = speedValue;
         currentDeck.player.playbackRate = speedValue;
+        
+        // Update BPM based on speed if we have a valid original BPM
+        if (currentDeck.originalBpm > 0) {
+            // Calculate new BPM based on speed ratio
+            currentDeck.bpm = Math.round(currentDeck.originalBpm * speedValue * 10) / 10;
+            
+            // Update UI
+            bpmValue.textContent = currentDeck.bpm.toFixed(1);
+            bpmInput.value = currentDeck.bpm.toFixed(1);
+        }
     }
     
     /**
@@ -669,6 +723,187 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.warn(`Error applying ${band} EQ to right deck:`, e);
             }
         }
+    }
+    
+    /**
+     * Detect BPM for a deck
+     * @param {string} deckName - 'left' or 'right'
+     */
+    async function detectBPM(deckName) {
+        const currentDeck = deck[deckName];
+        const bpmValueElement = deckName === 'left' ? leftBpmValue : rightBpmValue;
+        const bpmDetectButton = deckName === 'left' ? leftBpmDetect : rightBpmDetect;
+        const bpmInput = deckName === 'left' ? leftBpmInput : rightBpmInput;
+        
+        if (!currentDeck.currentTrack) {
+            showNotification(`No track loaded on Deck ${deckName === 'left' ? '1' : '2'}`, 'error');
+            return;
+        }
+        
+        if (!audioContext) {
+            try {
+                initAudioContext();
+            } catch (error) {
+                showNotification('Could not initialize audio processing', 'error');
+                return;
+            }
+        }
+        
+        if (currentDeck.bpmDetecting) {
+            showNotification('BPM detection already in progress', 'info');
+            return;
+        }
+        
+        try {
+            // Update UI state
+            currentDeck.bpmDetecting = true;
+            bpmDetectButton.classList.add('active');
+            bpmDetectButton.innerHTML = '<span>Detecting...</span>';
+            bpmValueElement.textContent = '...';
+            showNotification(`Detecting BPM for "${currentDeck.currentTrack.displayName}"...`, 'info');
+            
+            // Store playback state
+            const wasPlaying = currentDeck.isPlaying;
+            
+            // Create BPM detector if not already available
+            if (!bpmDetector) {
+                bpmDetector = new BPMDetector(audioContext);
+            }
+            
+            // Detect BPM
+            const detectedBpm = await bpmDetector.detectBPM(
+                currentDeck.player, 
+                progress => {
+                    // Update progress in UI
+                    bpmValueElement.textContent = `${progress.toFixed(0)}%`;
+                }
+            );
+            
+            // Update deck state with detected BPM
+            currentDeck.bpm = detectedBpm;
+            currentDeck.originalBpm = detectedBpm;
+            
+            // Update UI
+            bpmValueElement.textContent = `${detectedBpm.toFixed(1)}`;
+            bpmInput.value = detectedBpm.toFixed(1);
+            
+            showNotification(`BPM detected: ${detectedBpm.toFixed(1)}`, 'success');
+        } catch (error) {
+            console.error('BPM detection error:', error);
+            showNotification(`BPM detection failed. ${error.message || 'Try a different section of the track.'}`, 'error');
+            
+            // Reset BPM display to previous value
+            bpmValueElement.textContent = currentDeck.bpm.toFixed(1);
+        } finally {
+            // Reset UI state
+            currentDeck.bpmDetecting = false;
+            bpmDetectButton.classList.remove('active');
+            bpmDetectButton.innerHTML = '<span>Detect</span>';
+        }
+    }
+    
+    /**
+     * Set BPM manually for a deck
+     * @param {string} deckName - 'left' or 'right'
+     */
+    function setBPM(deckName) {
+        const currentDeck = deck[deckName];
+        const bpmInput = deckName === 'left' ? leftBpmInput : rightBpmInput;
+        const bpmValue = deckName === 'left' ? leftBpmValue : rightBpmValue;
+        const speedSlider = deckName === 'left' ? leftSpeed : rightSpeed;
+        
+        if (!currentDeck.currentTrack) {
+            showNotification(`No track loaded on Deck ${deckName === 'left' ? '1' : '2'}`, 'error');
+            return;
+        }
+        
+        // Get BPM from input and validate
+        let newBpm = parseFloat(bpmInput.value);
+        
+        // Validate BPM range
+        if (isNaN(newBpm) || newBpm < 60 || newBpm > 200) {
+            showNotification('BPM must be between 60 and 200', 'error');
+            bpmInput.value = currentDeck.bpm.toFixed(1);
+            return;
+        }
+        
+        // If no original BPM is set (first time), use this as original
+        if (currentDeck.originalBpm <= 0) {
+            currentDeck.originalBpm = newBpm;
+            currentDeck.bpm = newBpm;
+            bpmValue.textContent = newBpm.toFixed(1);
+            showNotification(`BPM set to ${newBpm.toFixed(1)}`, 'success');
+            return;
+        }
+        
+        // Calculate new speed based on BPM ratio
+        const speedRatio = newBpm / currentDeck.originalBpm;
+        
+        // Clamp speed between 50% and 150%
+        const newSpeed = Math.min(Math.max(50, speedRatio * 100), 150);
+        
+        // Update speed slider
+        speedSlider.value = newSpeed;
+        
+        // Apply speed (this will also update the BPM display)
+        applySpeed(deckName, newSpeed);
+        
+        showNotification(`BPM set to ${newBpm.toFixed(1)}`, 'success');
+    }
+    
+    /**
+     * Synchronize BPM between decks
+     * @param {string} sourceDeck - Source deck ('left' or 'right')
+     * @param {string} targetDeck - Target deck ('left' or 'right')
+     */
+    function syncBPM(sourceDeck, targetDeck) {
+        const source = deck[sourceDeck];
+        const target = deck[targetDeck];
+        
+        if (!source.currentTrack) {
+            showNotification(`No track loaded on source Deck ${sourceDeck === 'left' ? '1' : '2'}`, 'error');
+            return;
+        }
+        
+        if (!target.currentTrack) {
+            showNotification(`No track loaded on target Deck ${targetDeck === 'left' ? '1' : '2'}`, 'error');
+            return;
+        }
+        
+        if (source.bpm <= 0) {
+            showNotification(`Source deck BPM not detected or set`, 'error');
+            return;
+        }
+        
+        if (target.originalBpm <= 0) {
+            // If target has no original BPM, just set it
+            target.originalBpm = target.bpm > 0 ? target.bpm : 120.0;
+        }
+        
+        // Set target BPM input to match source BPM
+        const targetBpmInput = targetDeck === 'left' ? leftBpmInput : rightBpmInput;
+        targetBpmInput.value = source.bpm.toFixed(1);
+        
+        // Apply BPM to target deck
+        setBPM(targetDeck);
+        
+        showNotification(`Deck ${targetDeck === 'left' ? '1' : '2'} synced to ${source.bpm.toFixed(1)} BPM`, 'success');
+    }
+    
+    /**
+     * Validate BPM input and format to one decimal place
+     * @param {HTMLInputElement} input - BPM input element
+     */
+    function validateBpmInput(input) {
+        let value = parseFloat(input.value);
+        
+        if (isNaN(value)) {
+            value = 120.0;
+        } else {
+            value = Math.min(Math.max(60.0, value), 200.0);
+        }
+        
+        input.value = value.toFixed(1);
     }
     
     /**

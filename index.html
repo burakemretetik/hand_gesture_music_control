@@ -77,6 +77,25 @@
                                 <label for="left-speed">Speed</label>
                                 <input type="range" id="left-speed" class="slider" min="50" max="150" value="100">
                             </div>
+                            
+                            <div class="bpm-container">
+                                <div class="bpm-display">
+                                    <label>BPM</label>
+                                    <div id="left-bpm-value">0.0</div>
+                                </div>
+                                <div class="bpm-controls">
+                                    <button id="left-bpm-detect" class="bpm-btn" title="Detect BPM">
+                                        <span>Detect</span>
+                                    </button>
+                                    <input type="number" id="left-bpm-input" min="60" max="200" step="0.1" value="120.0">
+                                    <button id="left-bpm-set" class="bpm-btn" title="Set BPM">
+                                        <span>Set</span>
+                                    </button>
+                                    <button id="left-bpm-sync" class="bpm-btn sync-btn" title="Sync to other deck">
+                                        <span>Sync</span>
+                                    </button>
+                                </div>
+                            </div>
 
                             <!-- Hidden audio element for the left deck -->
                             <audio id="left-player"></audio>
@@ -165,6 +184,25 @@
                                 <label for="right-speed">Speed</label>
                                 <input type="range" id="right-speed" class="slider" min="50" max="150" value="100">
                             </div>
+                            
+                            <div class="bpm-container">
+                                <div class="bpm-display">
+                                    <label>BPM</label>
+                                    <div id="right-bpm-value">0.0</div>
+                                </div>
+                                <div class="bpm-controls">
+                                    <button id="right-bpm-detect" class="bpm-btn" title="Detect BPM">
+                                        <span>Detect</span>
+                                    </button>
+                                    <input type="number" id="right-bpm-input" min="60" max="200" step="0.1" value="120.0">
+                                    <button id="right-bpm-set" class="bpm-btn" title="Set BPM">
+                                        <span>Set</span>
+                                    </button>
+                                    <button id="right-bpm-sync" class="bpm-btn sync-btn" title="Sync to other deck">
+                                        <span>Sync</span>
+                                    </button>
+                                </div>
+                            </div>
 
                             <!-- Hidden audio element for the right deck -->
                             <audio id="right-player"></audio>
@@ -182,6 +220,7 @@
     <div id="notifications"></div>
 
     <!-- JavaScript -->
+    <script src="js/bpm-detector.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
